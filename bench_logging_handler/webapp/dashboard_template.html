@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clever Logging Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .controls {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        .control-group input,
+        .control-group select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .logs-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .logs-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logs-count {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .logs-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            border-bottom: 1px solid #f1f3f4;
+            padding: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .log-entry:hover {
+            background-color: #f8f9fa;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-level {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .log-level.DEBUG { background: #e3f2fd; color: #1976d2; }
+        .log-level.INFO { background: #e8f5e8; color: #2e7d32; }
+        .log-level.WARNING { background: #fff3e0; color: #f57c00; }
+        .log-level.ERROR { background: #ffebee; color: #d32f2f; }
+        .log-level.CRITICAL { background: #fce4ec; color: #c2185b; }
+        .log-level.BENCH_START { background: #e1f5fe; color: #0277bd; }
+        .log-level.BENCH_END { background: #f3e5f5; color: #7b1fa2; }
+
+        .log-timestamp {
+            color: #666;
+            font-size: 0.9rem;
+            margin-right: 1rem;
+        }
+
+        .log-message {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-details {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-details span {
+            margin-right: 1rem;
+        }
+
+        .log-location {
+            background: #f8f9fa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: #495057;
+            border-left: 3px solid #667eea;
+            margin: 0.5rem 0;
+        }
+
+        .log-location .file-path {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .log-location .line-number {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .log-location .function-name {
+            color: #dc3545;
+            font-style: italic;
+        }
+
+        .log-trace {
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .no-logs {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Clever Logging Dashboard</h1>
+        <p>Log analysis and monitoring - {{GENERATION_DATE}}</p>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label for="level-filter">Log Level</label>
+                <select id="level-filter">
+                    <option value="">All Levels</option>
+                    <option value="DEBUG">DEBUG</option>
+                    <option value="INFO">INFO</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="ERROR">ERROR</option>
+                    <option value="CRITICAL">CRITICAL</option>
+                    <option value="BENCH_START">BENCH_START</option>
+                    <option value="BENCH_END">BENCH_END</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="search-filter">Search Message</label>
+                <input type="text" id="search-filter" placeholder="Search in messages...">
+            </div>
+
+            <div class="control-group">
+                <label for="logger-filter">Logger</label>
+                <input type="text" id="logger-filter" placeholder="Filter by logger...">
+            </div>
+
+            <div class="control-group">
+                <label for="time-range">Time Range</label>
+                <select id="time-range">
+                    <option value="">All Time</option>
+                    <option value="1h">Last Hour</option>
+                    <option value="6h">Last 6 Hours</option>
+                    <option value="24h">Last 24 Hours</option>
+                    <option value="7d">Last 7 Days</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-logs">0</div>
+                <div class="stat-label">Total Logs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="error-count">0</div>
+                <div class="stat-label">Errors</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="warning-count">0</div>
+                <div class="stat-label">Warnings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="bench-count">0</div>
+                <div class="stat-label">Benchmarks</div>
+            </div>
+        </div>
+
+        <div class="logs-container">
+            <div class="logs-header">
+                <div class="logs-count" id="filtered-count">0 logs</div>
+                <div>
+                    <button onclick="clearFilters()" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear Filters</button>
+                </div>
+            </div>
+            <div class="logs-list" id="logs-list">
+                <div class="no-logs">No logs available</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Log data will be loaded from file
+        let allLogs = [];
+        let filteredLogs = [];
+        const LOG_FILE_PATH = '{{LOG_FILE_PATH}}';
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLogData();
+        });
+
+        async function loadLogData() {
+            try {
+                const response = await fetch(LOG_FILE_PATH);
+                const text = await response.text();
+                
+                // Parse different JSON formats
+                if (text.trim().startsWith('[')) {
+                    // JSON array
+                    allLogs = JSON.parse(text);
+                } else if (text.trim().startsWith('{')) {
+                    // Handle concatenated JSON objects or single object
+                    const jsonObjects = text.trim().split('\n').filter(line => line.trim());
+                    allLogs = [];
+                    
+                    for (const line of jsonObjects) {
+                        try {
+                            // Try to parse each line as JSON
+                            if (line.includes('}{')) {
+                                // Handle concatenated objects
+                                const parts = line.split('}{');
+                                for (let i = 0; i < parts.length; i++) {
+                                    let part = parts[i];
+                                    if (i === 0) part += '}';
+                                    else if (i === parts.length - 1) part = '{' + part;
+                                    else part = '{' + part + '}';
+                                    
+                                    allLogs.push(JSON.parse(part));
+                                }
+                            } else {
+                                allLogs.push(JSON.parse(line));
+                            }
+                        } catch (e) {
+                            console.warn('Skipping invalid JSON line:', e);
+                        }
+                    }
+                } else {
+                    // Newline-delimited JSON
+                    const lines = text.split('\n').filter(line => line.trim());
+                    allLogs = lines.map(line => JSON.parse(line));
+                }
+                
+                updateStats();
+                applyFilters();
+                setupEventListeners();
+                
+            } catch (error) {
+                console.error('Error loading log data:', error);
+                document.getElementById('logs-list').innerHTML = 
+                    `<div class="no-logs">Error loading log file: ${LOG_FILE_PATH}<br>Make sure the file exists and is accessible.</div>`;
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('level-filter').addEventListener('change', applyFilters);
+            document.getElementById('search-filter').addEventListener('input', applyFilters);
+            document.getElementById('logger-filter').addEventListener('input', applyFilters);
+            document.getElementById('time-range').addEventListener('change', applyFilters);
+        }
+
+        function updateStats() {
+            const totalLogs = allLogs.length;
+            const errorCount = allLogs.filter(log => log.level === 'ERROR' || log.level === 'CRITICAL').length;
+            const warningCount = allLogs.filter(log => log.level === 'WARNING').length;
+            const benchCount = allLogs.filter(log => log.level === 'BENCH_START' || log.level === 'BENCH_END').length;
+
+            document.getElementById('total-logs').textContent = totalLogs;
+            document.getElementById('error-count').textContent = errorCount;
+            document.getElementById('warning-count').textContent = warningCount;
+            document.getElementById('bench-count').textContent = benchCount;
+        }
+
+        function applyFilters() {
+            const levelFilter = document.getElementById('level-filter').value;
+            const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+            const loggerFilter = document.getElementById('logger-filter').value.toLowerCase();
+            const timeRange = document.getElementById('time-range').value;
+
+            filteredLogs = allLogs.filter(log => {
+                // Level filter
+                if (levelFilter && log.level !== levelFilter) return false;
+
+                // Search filter
+                if (searchFilter && !log.message.toLowerCase().includes(searchFilter)) return false;
+
+                // Logger filter
+                if (loggerFilter && !log.logger.toLowerCase().includes(loggerFilter)) return false;
+
+                // Time range filter
+                if (timeRange) {
+                    const logTime = new Date(log.ts_iso);
+                    const now = new Date();
+                    const diffMs = now - logTime;
+
+                    switch (timeRange) {
+                        case '1h':
+                            if (diffMs > 60 * 60 * 1000) return false;
+                            break;
+                        case '6h':
+                            if (diffMs > 6 * 60 * 60 * 1000) return false;
+                            break;
+                        case '24h':
+                            if (diffMs > 24 * 60 * 60 * 1000) return false;
+                            break;
+                        case '7d':
+                            if (diffMs > 7 * 24 * 60 * 60 * 1000) return false;
+                            break;
+                    }
+                }
+
+                return true;
+            });
+
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const logsList = document.getElementById('logs-list');
+            const filteredCount = document.getElementById('filtered-count');
+
+            filteredCount.textContent = `${filteredLogs.length} logs`;
+
+            if (filteredLogs.length === 0) {
+                logsList.innerHTML = '<div class="no-logs">No logs match the current filters</div>';
+                return;
+            }
+
+            logsList.innerHTML = filteredLogs.map(log => {
+                const timestamp = new Date(log.ts_iso).toLocaleString();
+                const traceHtml = log.trace ? `<div class="log-trace">${log.trace.text || 'Stack trace available'}</div>` : '';
+                const benchInfo = log.bench ? `<div class="log-details"><span>Bench ID: ${log.bench.id}</span><span>Duration: ${log.bench.duration ? log.bench.duration.toFixed(3) + 's' : 'N/A'}</span></div>` : '';
+                
+                // Format file path to show only filename if it's a full path
+                const fileName = log.frame.file ? log.frame.file.split('/').pop() : 'unknown';
+                const locationHtml = `
+                    <div class="log-location">
+                        📁 <span class="file-path">${fileName}</span>:<span class="line-number">${log.frame.line}</span> 
+                        in <span class="function-name">${log.frame.func || 'unknown'}</span>
+                    </div>
+                `;
+
+                return `
+                    <div class="log-entry">
+                        <div class="log-header">
+                            <span class="log-level ${log.level}">${log.level}</span>
+                            <span class="log-timestamp">${timestamp}</span>
+                            <span class="log-details">Logger: ${log.logger}</span>
+                        </div>
+                        <div class="log-message">${log.message}</div>
+                        ${locationHtml}
+                        <div class="log-details">
+                            <span>PID: ${log.system.pid}</span>
+                            <span>Host: ${log.system.hostname}</span>
+                            <span>Python: ${log.system.python_version}</span>
+                        </div>
+                        ${benchInfo}
+                        ${traceHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function clearFilters() {
+            document.getElementById('level-filter').value = '';
+            document.getElementById('search-filter').value = '';
+            document.getElementById('logger-filter').value = '';
+            document.getElementById('time-range').value = '';
+            applyFilters();
+        }
+    </script>
+</body>
+</html>
